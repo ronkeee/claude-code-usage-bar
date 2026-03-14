@@ -9,7 +9,7 @@ A lightweight macOS menu bar app that shows your [Claude Code](https://claude.ai
 ## Install
 
 ```bash
-brew tap YOUR_USERNAME/claude-code-usage-bar
+brew tap ronkeee/claude-code-usage-bar
 brew install claude-code-usage-bar
 brew services start claude-code-usage-bar
 ```
@@ -18,7 +18,7 @@ The icon appears in your menu bar within a few seconds.
 
 **Or, one-line install without Homebrew:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/claude-code-usage-bar/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ronkeee/claude-code-usage-bar/main/install.sh | bash
 ```
 
 ---
@@ -95,12 +95,12 @@ No data is sent to any third party. The app is fully open source.
 ```bash
 brew services stop claude-code-usage-bar
 brew uninstall claude-code-usage-bar
-brew untap YOUR_USERNAME/claude-code-usage-bar
+brew untap ronkeee/claude-code-usage-bar
 ```
 
 Or if installed via install.sh:
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/claude-code-usage-bar/main/uninstall.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/ronkeee/claude-code-usage-bar/main/uninstall.sh)
 ```
 
 ---

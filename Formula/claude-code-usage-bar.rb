@@ -1,7 +1,7 @@
 class ClaudeCodeUsageBar < Formula
   desc     "Claude Code usage stats in your macOS menu bar"
-  homepage "https://github.com/YOUR_USERNAME/claude-code-usage-bar"
-  url      "https://github.com/YOUR_USERNAME/claude-code-usage-bar/archive/refs/tags/v1.0.0.tar.gz"
+  homepage "https://github.com/ronkeee/claude-code-usage-bar"
+  url      "https://github.com/ronkeee/claude-code-usage-bar/archive/refs/tags/v1.0.0.tar.gz"
   sha256   "REPLACE_WITH_SHA256_AFTER_RELEASE"
   license  "MIT"
   version  "1.0.0"

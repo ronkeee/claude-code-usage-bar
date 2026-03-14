@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # claude-code-usage-bar — install script
-# Usage: curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/claude-code-usage-bar/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/ronkeee/claude-code-usage-bar/main/install.sh | bash
 
 set -euo pipefail
 
-REPO="https://raw.githubusercontent.com/YOUR_USERNAME/claude-code-usage-bar/main"
+REPO="https://raw.githubusercontent.com/ronkeee/claude-code-usage-bar/main"
 INSTALL_DIR="$HOME/.claude/menubar"
 PLIST="$HOME/Library/LaunchAgents/com.claude.usage-bar.plist"
 
