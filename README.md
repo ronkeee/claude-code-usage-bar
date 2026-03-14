@@ -2,7 +2,7 @@
 
 A lightweight macOS menu bar app that shows your [Claude Code](https://claude.ai/code) usage stats — messages, models, and live plan limits.
 
-![screenshot placeholder](screenshot.png)
+![screenshot](Screenshot.png)
 
 ---
 
