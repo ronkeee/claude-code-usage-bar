@@ -141,15 +141,30 @@ _live_lock  = threading.Lock()
 
 def _refresh_live_usage(org_id: str):
     """Background thread: poll claude.ai usage API every 60 s."""
+    fail_count = 0
     while True:
         sk = _get_session_key()
-        if sk and org_id:
+        if not sk:
+            with _live_lock:
+                _live_cache["_ok"]    = False
+                _live_cache["_error"] = "no_key"
+            time.sleep(60)
+            continue
+        if org_id:
             data = _claude_get(f"organizations/{org_id}/usage", sk)
             if data:
+                fail_count = 0
                 with _live_lock:
                     _live_cache.update(data)
-                    _live_cache["_ok"] = True
-                    _live_cache["_ts"] = time.time()
+                    _live_cache["_ok"]    = True
+                    _live_cache["_error"] = None
+                    _live_cache["_ts"]    = time.time()
+            else:
+                fail_count += 1
+                if fail_count >= 2:
+                    with _live_lock:
+                        _live_cache["_ok"]    = False
+                        _live_cache["_error"] = "expired"
         time.sleep(60)
 
 
@@ -498,7 +513,14 @@ class ClaudeUsageApp(rumps.App):
             else:
                 self.live_note.title = ""
         else:
-            self.live_header.title  = "Plan limits   (connecting…)"
+            error = live.get("_error")
+            if error == "expired":
+                status = "⚠️ session expired — update key"
+            elif error == "no_key":
+                status = "no session key set"
+            else:
+                status = "connecting…"
+            self.live_header.title  = f"Plan limits   ({status})"
             self.session_item.title = "Current session  —"
             self.session_bar.title  = ""
             self.weekly_item.title  = "Weekly limits    —"
