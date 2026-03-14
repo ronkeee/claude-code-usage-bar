@@ -16,6 +16,13 @@ if [ -z "$PYTHON" ]; then
   echo "✗  python3 not found. Install via: brew install python"
   exit 1
 fi
+PY_VER=$("$PYTHON" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+PY_MAJOR=$(echo "$PY_VER" | cut -d. -f1)
+PY_MINOR=$(echo "$PY_VER" | cut -d. -f2)
+if [ "$PY_MAJOR" -lt 3 ] || { [ "$PY_MAJOR" -eq 3 ] && [ "$PY_MINOR" -lt 9 ]; }; then
+  echo "✗  Python 3.9+ required (found $PY_VER). Install via: brew install python"
+  exit 1
+fi
 echo "✓  Python: $PYTHON ($($PYTHON --version))"
 
 # ── 2. pip deps ───────────────────────────────────

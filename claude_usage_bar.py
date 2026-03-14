@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations  # allows str | None on Python 3.9
 """claude-code-usage-bar — macOS menu bar app for Claude Code usage.
 
 Data sources
