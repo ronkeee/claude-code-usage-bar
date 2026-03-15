@@ -3,22 +3,24 @@
 
 Live plan limits : https://claude.ai/api/organizations/{org}/usage
                    (session %, weekly %, reset times)
-                   Auth via Chrome sessionKey cookie (browser_cookie3).
+                   Auth via sessionKey stored in config.json (one-time paste setup).
 
 Local stats      : ~/.claude/projects/**/*.jsonl
                    (turns, tokens, sessions — no auth needed)
 
-Gauge            : weekly utilisation from live API (capped 100%).
+Gauge            : current-session utilisation from live API (capped 100%).
 Icon             : saved to /tmp/claude_gauge.png  →  self.icon
 """
 
 import calendar
 import json
 import os
+import subprocess
 import threading
 import time
 import urllib.request
 import urllib.error
+import webbrowser
 from datetime import datetime, timedelta, timezone
 
 import rumps
@@ -70,40 +72,74 @@ def save_config(cfg: dict):
         json.dump(cfg, f, indent=2)
 
 
-# ── session key from Chrome ───────────────────────────────────────────────────
+# ── session key (stored in config.json — no Keychain, no browser prompts) ─────
 _session_key_cache: dict = {"key": None, "fetched": 0.0}
-_SESSION_KEY_TTL = 3600   # re-read from Chrome every hour
+_SESSION_KEY_TTL = 3600   # re-read from config at most once per hour
 
 
 def _get_session_key() -> str | None:
-    """Return sessionKey in priority order:
-    1. Manual key stored in config  (no Keychain needed)
-    2. Chrome cookie via browser_cookie3  (triggers Keychain prompt)
-    """
+    """Return sessionKey from in-memory cache or config.json. No Keychain involved."""
     now = time.time()
     if _session_key_cache["key"] and now - _session_key_cache["fetched"] < _SESSION_KEY_TTL:
         return _session_key_cache["key"]
-
-    # 1. Manual key from config
     cfg = load_config()
-    manual = cfg.get("session_key", "").strip()
-    if manual:
-        _session_key_cache["key"]     = manual
+    key = cfg.get("session_key", "").strip()
+    if key:
+        _session_key_cache["key"]     = key
         _session_key_cache["fetched"] = now
-        return manual
-
-    # 2. Auto-read from Chrome (needs Keychain)
-    try:
-        import browser_cookie3
-        cj = browser_cookie3.chrome(domain_name=".claude.ai")
-        for cookie in cj:
-            if cookie.name == "sessionKey":
-                _session_key_cache["key"]     = cookie.value
-                _session_key_cache["fetched"] = now
-                return cookie.value
-    except Exception:
-        pass
+        return key
     return None
+
+
+def _save_session_key(key: str):
+    """Persist sessionKey to config.json and update in-memory cache."""
+    cfg = load_config()
+    cfg["session_key"] = key
+    save_config(cfg)
+    _session_key_cache["key"]     = key
+    _session_key_cache["fetched"] = time.time()
+
+
+def _clear_session_key():
+    """Remove sessionKey from config.json and cache."""
+    cfg = load_config()
+    cfg["session_key"] = ""
+    save_config(cfg)
+    _session_key_cache["key"]     = None
+    _session_key_cache["fetched"] = 0.0
+
+
+def _run_setup_dialog(app_ref=None):
+    """One-time setup: open claude.ai, show instructions, save pasted key."""
+    webbrowser.open("https://claude.ai")
+    time.sleep(0.8)
+    script = (
+        'set k to text returned of (display dialog '
+        '"Live plan limits — one-time setup\\n\\n'
+        '1. Press \\u2325\\u2318I to open DevTools\\n'
+        '2. Go to: Application \\u2192 Cookies \\u2192 https://claude.ai\\n'
+        '3. Find the row named \\"sessionKey\\"\\n'
+        '4. Copy the Value (it\'s a long string)\\n'
+        '5. Paste it below:" '
+        'default answer "" with title "Claude Code Usage Bar" '
+        'buttons {"Cancel", "Save"} default button "Save" '
+        'with hidden answer)\n'
+        'return k'
+    )
+    result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+    key = result.stdout.strip()
+    if not key or result.returncode != 0:
+        return   # user cancelled
+    _save_session_key(key)
+    # Discover org_id if missing
+    cfg = load_config()
+    if not cfg.get("claude_org_id"):
+        org_id = _discover_org_id(key)
+        if org_id:
+            cfg["claude_org_id"] = org_id
+            save_config(cfg)
+    if app_ref:
+        app_ref.manual_refresh(None)
 
 
 def _claude_get(path: str, session_key: str) -> dict | None:
@@ -395,6 +431,9 @@ class ClaudeUsageApp(rumps.App):
         # ── Plan ───────────────────────────────────────────
         self.plan_item    = rumps.MenuItem("", callback=_noop)
 
+        # ── Setup / Reconnect (shown only when live data is unavailable) ──
+        self.setup_item   = rumps.MenuItem("Setup Live Data…", callback=self._on_setup)
+
         self.refresh_item = rumps.MenuItem("Refresh Now", callback=self.manual_refresh)
         self.quit_item    = rumps.MenuItem("Quit", callback=rumps.quit_application)
 
@@ -407,6 +446,7 @@ class ClaudeUsageApp(rumps.App):
             self.weekly_item,
             self.weekly_bar,
             self.live_note,
+            self.setup_item,
             None,
             self.models_hdr,
             *self.model_slots,
@@ -489,6 +529,7 @@ class ClaudeUsageApp(rumps.App):
             return f"{label}{' ' * pad}{pct_str}"
 
         if live.get("_ok"):
+            self.setup_item._menuitem.setHidden_(True)
             fh = live.get("five_hour") or {}
             sd = live.get("seven_day") or {}
             eu = live.get("extra_usage") or {}
@@ -516,12 +557,16 @@ class ClaudeUsageApp(rumps.App):
         else:
             error = live.get("_error")
             if error == "expired":
-                status = "⚠️ session expired — update key"
+                self.live_header.title  = "Plan limits   (session expired)"
+                self.setup_item.title   = "↺ Reconnect…"
+                self.setup_item._menuitem.setHidden_(False)
             elif error == "no_key":
-                status = "no session key set"
+                self.live_header.title  = "Plan limits"
+                self.setup_item.title   = "Setup Live Data…"
+                self.setup_item._menuitem.setHidden_(False)
             else:
-                status = "connecting…"
-            self.live_header.title  = f"Plan limits   ({status})"
+                self.live_header.title  = "Plan limits   (connecting…)"
+                self.setup_item._menuitem.setHidden_(True)
             self.session_item.title = "Current session  —"
             self.session_bar.title  = ""
             self.weekly_item.title  = "Weekly limits    —"
@@ -562,6 +607,10 @@ class ClaudeUsageApp(rumps.App):
         # ── plan ──────────────────────────────────────────
         plan_name = _plan_name(budget)
         self.plan_item.title = f"Plan: {plan_name}"
+
+    def _on_setup(self, _):
+        """Open setup dialog in background thread so UI doesn't freeze."""
+        threading.Thread(target=_run_setup_dialog, args=(self,), daemon=True).start()
 
     def manual_refresh(self, _):
         self._last_pct = -1
