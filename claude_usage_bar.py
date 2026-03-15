@@ -400,6 +400,7 @@ class ClaudeUsageApp(rumps.App):
 
         self.menu = [
             self.plan_item,           # Plan: Pro — top of menu
+            None,                     # divider under Plan: Pro
             self.live_header,
             self.session_item,
             self.session_bar,
