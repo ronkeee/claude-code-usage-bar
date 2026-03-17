@@ -65,7 +65,7 @@ The Plan limits section (Current session %, Weekly %) requires a one-time setup:
 3. Follow the 5-step dialog (opens claude.ai, you copy one value from DevTools)
 4. Done — never asked again
 
-Your session key is stored in **macOS Keychain** (encrypted, app-access only). It's never written to any file, log, or sent anywhere except `https://claude.ai`.
+Your session key is stored in `~/.claude/menubar/config.json` (local to your machine, never shared). It is only sent to `https://claude.ai` to fetch your usage data.
 
 When your session eventually expires (weeks–months), the menu will show **"Reconnect…"** and you repeat the 2-minute flow.
 
@@ -76,7 +76,7 @@ When your session eventually expires (weeks–months), the menu will show **"Rec
 | What | Where | Auth |
 |------|-------|------|
 | Message counts, models | `~/.claude/projects/**/*.jsonl` | None — local files |
-| Current session %, weekly % | `https://claude.ai/api/…/usage` | sessionKey (Keychain) |
+| Current session %, weekly % | `https://claude.ai/api/…/usage` | sessionKey (config.json) |
 
 No data is sent to any third party. The app is fully open source.
 
