@@ -148,7 +148,7 @@ def _claude_get(path: str, session_key: str) -> dict | None:
         f"{CLAUDE_API}/{path}",
         headers={
             "Cookie":     f"sessionKey={session_key}",
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept":     "application/json",
             "Referer":    "https://claude.ai/",
         },
@@ -425,7 +425,7 @@ class ClaudeUsageApp(rumps.App):
         self.tokens_item   = rumps.MenuItem("", callback=_noop)
 
         # ── Models ─────────────────────────────────────────
-        self.models_hdr   = rumps.MenuItem("  Models this month:", callback=_noop)
+        self.models_hdr   = rumps.MenuItem("Models this month:", callback=_noop)
         self.model_slots  = [rumps.MenuItem("", callback=_noop) for _ in range(MAX_MODELS)]
 
         # ── Plan ───────────────────────────────────────────
